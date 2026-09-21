@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>메일 에이전트</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --ink: #16201c;
+      --muted: #5c6b63;
+      --line: #d5ddd8;
+      --paper: #f3f6f3;
+      --panel: #ffffff;
+      --accent: #1f7a5c;
+      --accent-soft: #e4f2ec;
+      --warn: #b45309;
+      --danger: #9f1239;
+      --shadow: 0 12px 28px rgba(22, 32, 28, 0.08);
+      --font: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      --chat-w: 360px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 70% 45% at 10% -10%, #d9ebe3 0%, transparent 55%),
+        var(--paper);
+    }
+    button, input, select, textarea { font: inherit; }
+
+    .app {
+      height: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px 20px 16px;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 12px;
+      transition: padding-right 0.2s ease;
+    }
+    .app.chat-open { padding-right: calc(var(--chat-w) + 28px); }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .top h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+    }
+    .top p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      max-width: 34rem;
+    }
+    .top-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .btn, .primary, .accounts button, .cats a {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn, .primary {
+      height: 36px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .accounts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .accounts button {
+      height: 34px;
+      padding: 0 12px;
+      font-size: 0.85rem;
+    }
+    .accounts button.active,
+    .cats a.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 12px;
+      min-height: 0;
+      height: 100%;
+    }
+    .list-pane,
+    .detail-pane {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      min-height: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .toolbar {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .toolbar h2 {
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+    }
+    .cats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .cats a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 10px;
+      font-size: 0.8rem;
+    }
+    .cats .count { opacity: 0.7; font-variant-numeric: tabular-nums; }
+    .search {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 12px;
+      background: #fafcfb;
+    }
+
+    .list { overflow: auto; padding: 8px; flex: 1; min-height: 0; }
+    .mail-item {
+      display: block;
+      padding: 12px;
+      border-radius: 12px;
+      color: inherit;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .mail-item:hover { background: #f7faf8; }
+    .mail-item.active {
+      background: var(--accent-soft);
+      border-color: #b7d9c8;
+    }
+    .mail-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .mail-item .from { color: var(--ink); font-weight: 650; }
+    .mail-item .subject {
+      margin: 0 0 4px;
+      font-size: 0.92rem;
+      letter-spacing: -0.02em;
+    }
+    .mail-item .why {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 650;
+      background: #eef1ef;
+      color: var(--muted);
+    }
+    .badge.high { background: #ffe4e6; color: var(--danger); }
+    .badge.medium { background: #ffedd5; color: var(--warn); }
+    .badge.low { background: #e8efe6; color: #3f5a4c; }
+
+    .detail-scroll {
+      overflow: auto;
+      padding: 20px;
+      flex: 1;
+      min-height: 0;
+    }
+    .detail-empty {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px;
+      line-height: 1.6;
+    }
+    .detail-scroll h2 {
+      margin: 10px 0 6px;
+      font-size: 1.3rem;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .block {
+      border-top: 1px solid var(--line);
+      padding: 14px 0;
+    }
+    .block h3 {
+      margin: 0 0 8px;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .block-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .block-head h3 { margin: 0; }
+    .block-head .btn-translate {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 650;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .block-head .btn-translate.active {
+      background: var(--accent-soft);
+      border-color: #b7d9c8;
+      color: var(--accent);
+    }
+    .block p {
+      margin: 0;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+    }
+    .correct {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .correct select {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 10px;
+      background: #fff;
+    }
+    .correct .prio-wrap[hidden] { display: none; }
+
+    .chat-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: var(--chat-w);
+      height: 100%;
+      background: var(--panel);
+      border-left: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.2s ease;
+      z-index: 30;
+    }
+    .chat-drawer.open { transform: none; }
+    .chat-head {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .chat-head h2 { margin: 0; font-size: 1rem; }
+    .chat-head-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .session-list {
+      max-height: 140px;
+      overflow: auto;
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: #fafcfb;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: inherit;
+    }
+    .session-item.active { border-color: var(--accent); background: var(--accent-soft); }
+    .session-item .session-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.85rem;
+      font-weight: 650;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .session-del {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .session-del:hover { background: #eef1ef; color: var(--ink); }
+    .session-empty {
+      padding: 12px 8px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .viewing-hint {
+      margin: 0;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .chat-log {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+    .bubble {
+      max-width: 92%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--ink);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.assistant {
+      align-self: flex-start;
+      background: #f0f4f1;
+      border-bottom-left-radius: 4px;
+    }
+    .composer {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .composer textarea {
+      flex: 1;
+      min-width: 0;
+      min-height: 44px;
+      max-height: 120px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fafcfb;
+      color: var(--ink);
+      font: inherit;
+      resize: none;
+      line-height: 1.4;
+    }
+    .composer button[type="submit"] {
+      flex: 0 0 auto;
+      height: 44px;
+      min-width: 72px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .mail-dialog {
+      width: min(560px, 92vw);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 0;
+      box-shadow: var(--shadow);
+    }
+    .mail-dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+    .dialog-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px;
+    }
+    .dialog-form h2 { margin: 8px 0 0; font-size: 1.05rem; }
+    .dialog-form h2:first-child { margin-top: 0; }
+    .dialog-form p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .dialog-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .dialog-form label input[type="text"] {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+    }
+    .dialog-form .radio {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .dialog-form .radio input { margin-top: 2px; }
+    #alias-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--ink);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: 0.2s ease;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .empty {
+      padding: 28px 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; }
+      .list-pane { max-height: 42vh; }
+      .app.chat-open { padding-right: 20px; }
+      .chat-drawer { width: min(100vw, var(--chat-w)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="top">
+      <div>
+        <h1>메일 에이전트</h1>
+        <p>여러 Gmail을 한곳에서. 분명한 기준은 규칙으로, 애매한 메일은 에이전트가 분류합니다.</p>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="btn" id="btn-settings">설정</button>
+        <button type="button" class="btn" id="btn-chat">대화</button>
+      </div>
+    </header>
+
+    <div class="accounts" id="accounts"></div>
+
+    <div class="workspace">
+      <section class="list-pane">
+        <div class="toolbar">
+          <h2 id="list-title">할 일 · 0</h2>
+          <div class="cats" id="cats"></div>
+          <input class="search" id="search" type="search" placeholder="발신자, 제목, 요약 검색" />
+        </div>
+        <div class="list" id="list"></div>
+      </section>
+      <section class="detail-pane" id="detail"></section>
+    </div>
+  </div>
+
+  <aside class="chat-drawer" id="chat-drawer" aria-hidden="true">
+    <div class="chat-head">
+      <h2>대화</h2>
+      <div class="chat-head-actions">
+        <button type="button" class="primary" id="btn-new-chat">새 대화</button>
+        <button type="button" class="btn" id="btn-chat-close">닫기</button>
+      </div>
+    </div>
+    <div class="session-list" id="session-list"></div>
+    <p class="viewing-hint" id="viewing-hint">메일을 고르면 에이전트가 그 메일을 기준으로 작업합니다.</p>
+    <div class="chat-log" id="chat-log"></div>
+    <form class="composer" id="chat-form">
+      <textarea id="chat-input" rows="1" placeholder="이 메일 초안 만들어줘" required></textarea>
+      <button type="submit">보내기</button>
+    </form>
+  </aside>
+
+  <dialog id="settings-dlg" class="mail-dialog">
+    <form class="dialog-form" id="settings-form">
+      <h2>참고·무시</h2>
+      <p>메일을 삭제하지 않습니다. 읽으면 할 일 칸이 아닌 참고·무시 목록에서 빠집니다.</p>
+      <label class="radio"><input type="radio" name="fyiIgnore" value="hide" /> 이 화면 목록에서만 숨김. Gmail 받은편지함은 그대로</label>
+      <label class="radio"><input type="radio" name="fyiIgnore" value="archive" /> Gmail 받은편지함에서 빼기(아카이브). 휴지통 아님</label>
+      <label class="radio"><input type="radio" name="fyiIgnore" value="keep" /> 보관함 탭에서 다시 보기</label>
+      <h2>계정 별칭</h2>
+      <p>이 화면에서만 쓰는 이름입니다. Gmail 표시 이름은 바뀌지 않습니다.</p>
+      <div id="alias-fields"></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="settings-cancel">닫기</button>
+        <button type="button" class="primary" id="settings-save">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ACCOUNT_META = [
+      { email: "church@gmail.com", key: "church", label: "교회" },
+      { email: "personal@gmail.com", key: "personal", label: "개인" },
+    ];
+
+    const LABELS = {
+      todo: "할 일",
+      fyi: "참고",
+      ignore: "무시",
+      unclassified: "미분류",
+      kept: "보관함",
+    };
+
+    const PRIORITY = {
+      high: "우선/높음",
+      medium: "우선/중간",
+      low: "우선/낮음",
+    };
+
+    const MAIL = [
+      {
+        id: "m1",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "high",
+        fromName: "이권사",
+        fromEmail: "kwonsa.lee@gmail.com",
+        subject: "어머니 수술로 심방 부탁드립니다",
+        date: "2026-09-21T08:15:00",
+        why: "심방 일정이 필요해 할 일",
+        summary: "이권사 모친 수술. 수요일 오후 병원 심방 요청.",
+        next: "병원·가능 시간 확인 후 심방 일정 회신",
+        body: "목사님 안녕하세요.\n\n어머니께서 이번 주 수요일 오전에 수술을 받게 되었습니다. 가능하시다면 수요일 오후 병원으로 심방 와주시면 큰 힘이 될 것 같습니다.\n\n병원은 Cedars-Sinai Medical Center이고, 자세한 시간은 수술 일정 확정되는 대로 다시 말씀드리겠습니다.\n\n감사합니다.\n이권사 올림",
+      },
+      {
+        id: "m2",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "high",
+        fromName: "Sarah Park",
+        fromEmail: "sarah.park@gmail.com",
+        subject: "Sunday 2nd service — need a worship leader",
+        date: "2026-09-21T09:40:00",
+        why: "예배 역할 확정이 필요",
+        summary: "주일 2부 예배 인도자 공석. 목사님 직접 인도 또는 대체 인선 요청.",
+        next: "직접 할지, 대체 집사에게 부탁할지 결정",
+        body: "Pastor Hong,\n\nDeacon Choi who was scheduled to lead the 2nd service this Sunday had a last-minute work trip. Could you lead it yourself, or should I ask someone else?\n\nPlease let me know by Thursday if possible.\n\nBlessings,\nSarah Park (Worship team)",
+        bodyKo: "홍 목사님,\n\n이번 주일 2부 예배를 인도하기로 하신 최집사님이 갑작스러운 출장으로 빠지게 되었습니다. 목사님께서 직접 인도해 주실 수 있으신지, 아니면 다른 분께 부탁드릴지 알려주시면 연락하겠습니다.\n\n가능하시면 목요일까지 회신 부탁드립니다.\n\n감사드립니다.\n박사라 (찬양팀)",
+      },
+      {
+        id: "m3",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "medium",
+        fromName: "Youth Leader Grace Kim",
+        fromEmail: "youth.grace@gmail.com",
+        subject: "Fall retreat speaker schedule",
+        date: "2026-09-20T21:10:00",
+        why: "수련회 강사·시간표 확정 필요",
+        summary: "10/17–18 청년 수련회. 금요 저녁·토요 오전 강의 가능 여부 확인.",
+        next: "두 세션 가능 여부 회신, 주제 한 줄 제안",
+        body: "Hi Pastor,\n\nOur fall retreat is set for Oct 17–18 at Camp Wrightwood. We would love for you to speak Friday evening and Saturday morning.\n\nTheme idea: “Faith in the wilderness.” Please let us know if the dates work and if you have a preferred title.\n\nThanks,\nGrace Kim (Youth)",
+        bodyKo: "목사님 안녕하세요.\n\n가을 수련회가 10월 17–18일 Camp Wrightwood로 확정되었습니다. 금요일 저녁과 토요일 오전 말씀을 부탁드리고 싶습니다.\n\n주제는 ‘광야에서의 믿음’ 정도로 생각하고 있습니다. 일정 가능 여부와 원하시는 제목이 있으시면 알려주세요.\n\n감사합니다.\n김은혜 (청년부)",
+      },
+      {
+        id: "m4",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "medium",
+        fromName: "S. Cal Korean Presbytery",
+        fromEmail: "office@sckp.org",
+        subject: "[Notice] Fall pastor gathering — RSVP by Sep 30",
+        date: "2026-09-20T14:05:00",
+        why: "참석 여부 회신 기한 있음",
+        summary: "남가주 한인노회 가을 목회자 모임. 9/30까지 참석 회신.",
+        next: "참석/불참 회신",
+        body: "Dear Pastor,\n\nYou are invited to the Fall Pastor Gathering.\n\nDate: Oct 8–9, 2026\nLocation: LA Korean Church Center, Fullerton\nFee: $80\n\nPlease RSVP by September 30.\n\nS. Cal Korean Presbytery Office",
+        bodyKo: "목사님께.\n\n가을 목회자 모임에 초대합니다.\n\n일시: 2026. 10. 8–9\n장소: LA Korean Church Center (Fullerton)\n회비: $80\n\n9월 30일까지 참석 여부를 회신해 주세요.\n\n남가주 한인노회 사무국",
+      },
+      {
+        id: "m5",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "low",
+        fromName: "정성도",
+        fromEmail: "jung.sungdo@gmail.com",
+        subject: "세례 문답 일정 문의",
+        date: "2026-09-19T19:30:00",
+        why: "세례 준비 일정 조율",
+        summary: "추수감사절 세례 희망. 문답·교육 일정 문의.",
+        next: "교육 일정표 공유 후 첫 면담 예약",
+        body: "목사님 평안하세요.\n\n이번 Thanksgiving Sunday에 세례 받기를 원하고 있습니다. 세례 문답과 교육은 보통 언제 진행되는지, 미리 준비할 것이 있는지도 알려주시면 감사하겠습니다.\n\n정성도 올림",
+      },
+      {
+        id: "m6",
+        account: "personal@gmail.com",
+        category: "todo",
+        priority: "medium",
+        fromName: "어머니",
+        fromEmail: "mom.home@naver.com",
+        subject: "이번 주 금요일 저녁 식사",
+        date: "2026-09-21T07:50:00",
+        why: "가족 일정 확답 필요",
+        summary: "금요일 저녁 집 식사 초대. 참석 여부 요청.",
+        next: "참석 가능 여부 회신",
+        body: "길동아,\n이번 주 금요일에 집에 와서 저녁 먹고 가렴. 동생도 온대.\n몇 시에 올 수 있는지 알려줘.\n엄마",
+      },
+      {
+        id: "m7",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "medium",
+        fromName: "Facilities Lead Tom Lee",
+        fromEmail: "tom.lee@gracekc.org",
+        subject: "AC repair quote — need approval",
+        date: "2026-09-21T11:20:00",
+        why: "시설 예산 승인 필요",
+        summary: "본당 에어컨 수리 견적 $1,850. 승인 여부 요청.",
+        next: "견적 승인/보류 회신",
+        body: "Pastor,\n\nThe sanctuary AC unit failed inspection. Vendor quote is $1,850 for parts + labor, scheduled for Tuesday if approved.\n\nCan we proceed, or should we get a second quote?\n\nTom Lee (Facilities)",
+        bodyKo: "목사님,\n\n본당 에어컨이 점검에서 불합격했습니다. 업체 견적은 부품·공임 포함 $1,850이며, 승인되면 화요일 작업 예정입니다.\n\n진행해도 될까요, 아니면 다른 견적을 더 받아볼까요?\n\n이톰 (시설팀)",
+      },
+      {
+        id: "m8",
+        account: "church@gmail.com",
+        category: "fyi",
+        fromName: "교회 행정실",
+        fromEmail: "admin@gracekc.org",
+        subject: "이번 주 주보·광고 최종본",
+        date: "2026-09-20T16:40:00",
+        why: "읽을 필요만 있고 회신 불필요",
+        summary: "이번 주 주보 최종본과 광고 문구 공유.",
+        next: "",
+        body: "목사님, 이번 주 주보 최종본과 광고 문구를 공유드립니다. 이미 교정 반영된 버전이며, 별도 회신은 필요하지 않습니다.\n\n첨부: bulletin_0921.pdf",
+      },
+      {
+        id: "m9",
+        account: "church@gmail.com",
+        category: "fyi",
+        fromName: "LA Korean Church Network",
+        fromEmail: "info@lakcn.org",
+        subject: "October united prayer night",
+        date: "2026-09-18T11:20:00",
+        why: "참고용 안내",
+        summary: "10/5 연합기도회 안내. 참석은 선택.",
+        next: "",
+        body: "Dear pastors,\n\nYou are welcome to join October United Prayer Night.\n\nWhen: Mon, Oct 5, 7:30 PM\nWhere: Bethany Korean Church, Los Angeles\n\nAttendance is optional.\n\nLA Korean Church Network",
+        bodyKo: "목회자 여러분께.\n\n10월 연합기도회를 안내드립니다.\n\n일시: 10월 5일(월) 저녁 7시 30분\n장소: Bethany Korean Church (Los Angeles)\n\n참석은 선택 사항입니다.\n\nLA 한인교회 네트워크",
+      },
+      {
+        id: "m10",
+        account: "personal@gmail.com",
+        category: "fyi",
+        fromName: "LA Public Library",
+        fromEmail: "noreply@lapl.org",
+        subject: "Your holds are ready for pickup",
+        date: "2026-09-19T10:05:00",
+        why: "수령만 하면 됨",
+        summary: "예약 도서 2권 도착. 9/26까지 수령.",
+        next: "",
+        body: "Hello,\n\nYour reserved items are ready.\nPickup deadline: Sep 26, 2026\nItems: 2\n\nPlease bring your library card.\n\nLA Public Library",
+        bodyKo: "안녕하세요.\n\n예약하신 자료가 도착했습니다.\n수령 기한: 2026-09-26\n권수: 2권\n\n도서관 회원증을 지참해 주세요.\n\nLA 시립도서관",
+      },
+      {
+        id: "m11",
+        account: "church@gmail.com",
+        category: "ignore",
+        fromName: "ChurchSupply Deals",
+        fromEmail: "promo@churchsupplydeals.com",
+        subject: "50% off pulpit flowers — this week only",
+        date: "2026-09-21T06:20:00",
+        why: "규칙: 마케팅 도메인 → 무시",
+        summary: "판촉 메일.",
+        next: "",
+        body: "Limited-time offer on pulpit flower sets!\nShop now.\nUnsubscribe below.",
+        bodyKo: "강대상 꽃장식 세트 기간 한정 특가!\n지금 주문하세요.\n수신거부는 하단 링크.",
+      },
+      {
+        id: "m12",
+        account: "church@gmail.com",
+        category: "ignore",
+        fromName: "MissionFund Alerts",
+        fromEmail: "news@missionfund.io",
+        subject: "Recommended missions to support this month",
+        date: "2026-09-17T13:00:00",
+        why: "규칙: 미요청 후원 홍보 → 무시",
+        summary: "정기 홍보 메일.",
+        next: "",
+        body: "Pastor, here are curated mission fields for this month. Donate now for matching gifts.",
+        bodyKo: "목사님, 이번 달 추천 선교지를 소개합니다. 지금 후원하면 매칭 기부가 추가됩니다.",
+      },
+      {
+        id: "m13",
+        account: "personal@gmail.com",
+        category: "ignore",
+        fromName: "Retail Deals",
+        fromEmail: "deal@shoppingmail.com",
+        subject: "Free shipping ends tonight",
+        date: "2026-09-16T20:40:00",
+        why: "규칙: 쇼핑 광고 → 무시",
+        summary: "광고.",
+        next: "",
+        body: "Today's picks selected for you. Free shipping ends at midnight.",
+        bodyKo: "회원님을 위한 오늘의 특가입니다. 자정까지 무료배송.",
+      },
+      {
+        id: "m14",
+        account: "church@gmail.com",
+        category: "unclassified",
+        fromName: "오장로",
+        fromEmail: "oh.elder@gmail.com",
+        subject: "당회 안건 하나 더",
+        date: "2026-09-21T10:30:00",
+        why: "",
+        summary: "",
+        next: "",
+        body: "목사님, 이번 주 당회 때 education wing 보일러 교체 건도 안건에 넣어주시면 좋겠습니다. 견적서 두 장 받아 두었습니다. 필요하시면 사무실에 두고 가겠습니다.",
+      },
+      {
+        id: "m15",
+        account: "church@gmail.com",
+        category: "unclassified",
+        fromName: "한새신자",
+        fromEmail: "han.new@gmail.com",
+        subject: "첫 출석 인사드립니다",
+        date: "2026-09-21T11:05:00",
+        why: "",
+        summary: "",
+        next: "",
+        body: "목사님 안녕하세요. 지난 주일 처음 예배에 참석한 한새입니다.\n앞으로 계속 나오고 싶은데, newcomer class가 있는지도 궁금합니다. 시간 되실 때 짧게라도 이야기 나눌 수 있을까요?",
+      },
+      {
+        id: "m16",
+        account: "church@gmail.com",
+        category: "unclassified",
+        fromName: "AV Team — Jay Choi",
+        fromEmail: "av.jay@gracekc.org",
+        subject: "Wireless mic batteries — alkaline or rechargeable?",
+        date: "2026-09-20T22:15:00",
+        why: "",
+        summary: "",
+        next: "",
+        body: "Pastor,\n\nWireless mic batteries are almost out. Should I reorder the same alkaline packs, or switch to rechargeable this year?\n\nI can order this week either way.\n\nJay (AV)",
+        bodyKo: "목사님,\n\n무선마이크 건전지가 거의 다 떨어졌습니다. 기존처럼 알카라인으로 주문할까요, 아니면 올해부터 충전식으로 바꿀까요?\n\n어느 쪽이든 이번 주 중 주문 가능합니다.\n\n제이 (음향)",
+      },
+      {
+        id: "m17",
+        account: "personal@gmail.com",
+        category: "unclassified",
+        fromName: "동창 민수",
+        fromEmail: "minsu.friend@gmail.com",
+        subject: "다음 달 동창 모임",
+        date: "2026-09-18T17:45:00",
+        why: "",
+        summary: "",
+        next: "",
+        body: "길동아, 다음 달 둘째 주 토요일에 동창들 모이기로 했어. 너도 시간 되면 와. 장소는 아직 미정이야.",
+      },
+      {
+        id: "m18",
+        account: "church@gmail.com",
+        category: "todo",
+        priority: "high",
+        fromName: "Counseling Center — Dr. Han",
+        fromEmail: "intake@hkccounseling.org",
+        subject: "Referral follow-up for a congregant",
+        date: "2026-09-21T07:10:00",
+        why: "성도 상담 연계 회신 필요",
+        summary: "상담센터에서 성도 연계 후속 확인. 동의서·가능 시간 요청.",
+        next: "성도 동의 확인 후 가능 시간대 회신",
+        body: "Dear Pastor Hong,\n\nThank you for referring your congregant last week. To proceed, we need a signed consent form and two preferred time windows for an intake call.\n\nCould you reply with those details?\n\nDr. Han\nHan Korean Counseling Center",
+        bodyKo: "홍 목사님,\n\n지난주 성도 의뢰 감사합니다. 진행을 위해 동의서 서명본과 초회 상담 전화 가능 시간대 두 구간이 필요합니다.\n\n해당 내용을 회신해 주시면 감사하겠습니다.\n\n한 박사\n한인상담센터",
+      },
+      {
+        id: "m19",
+        account: "church@gmail.com",
+        category: "fyi",
+        fromName: "회계팀",
+        fromEmail: "finance@gracekc.org",
+        subject: "8월 재정보고 요약",
+        date: "2026-09-15T15:10:00",
+        why: "열람만 하면 됨",
+        summary: "8월 수입·지출 요약본. 당회 자료용.",
+        next: "",
+        body: "목사님, 8월 재정보고 요약본입니다. 당회 자료에 그대로 첨부 가능합니다. 질문 있으시면 말씀해 주세요.",
+      },
+      {
+        id: "m20",
+        account: "church@gmail.com",
+        category: "fyi",
+        fromName: "City of Fullerton",
+        fromEmail: "permits@fullertonca.gov",
+        subject: "Temporary event permit reminder",
+        date: "2026-09-19T08:30:00",
+        why: "참고용 행정 안내",
+        summary: "야외 부흥회 임시 허가 만료 임박. 추가 조치 없으면 자동 종료.",
+        next: "",
+        body: "Hello,\n\nThis is a reminder that your temporary outdoor event permit (#EO-2026-441) expires on Oct 12. No action is needed if the event is complete.\n\nCity of Fullerton — Community Development",
+        bodyKo: "안녕하세요.\n\n임시 야외 행사 허가(#EO-2026-441)가 10월 12일에 만료됩니다. 행사가 끝났다면 추가 조치는 필요 없습니다.\n\nFullerton시 커뮤니티 개발과",
+      },
+      {
+        id: "m21",
+        account: "church@gmail.com",
+        category: "kept",
+        fromName: "구역장 모임",
+        fromEmail: "zone@gracekc.org",
+        subject: "지난주 구역 나눔 요약",
+        date: "2026-09-14T09:00:00",
+        why: "보관함에서 다시 보기 설정 예시",
+        summary: "이미 읽은 참고 메일. 보관함 탭 예시.",
+        next: "",
+        body: "지난주 구역 나눔 요약을 공유합니다. 별도 회신은 필요하지 않습니다.",
+      },
+      {
+        id: "m22",
+        account: "personal@gmail.com",
+        category: "todo",
+        priority: "low",
+        fromName: "DMV California",
+        fromEmail: "noreply@dmv.ca.gov",
+        subject: "Registration renewal reminder",
+        date: "2026-09-18T09:00:00",
+        why: "차량 등록 갱신 일정",
+        summary: "차량 등록 갱신 안내. 10/15까지 온라인 가능.",
+        next: "갱신 여부 확인 후 일정 잡기",
+        body: "Dear Customer,\n\nYour vehicle registration expires soon. You can renew online through Oct 15.\n\nVisit dmv.ca.gov to renew.\n\nCalifornia DMV",
+        bodyKo: "고객님께,\n\n차량 등록이 곧 만료됩니다. 10월 15일까지 온라인 갱신이 가능합니다.\n\ndmv.ca.gov에서 갱신하세요.\n\n캘리포니아 DMV",
+      },
+    ];
+
+    const SCRIPTED = [
+      {
+        test: /심방|병원|수술/,
+        reply: (m) =>
+          m
+            ? `선택 메일 기준 초안 예시입니다.\n\n---\n${m.fromName}님, 평안을 전합니다.\n전해 주신 소식 잘 받았습니다. 수요일 오후 심방으로 맞춰 보겠습니다. 수술 시간이 확정되면 알려 주시면 방문 시간을 조정하겠습니다.\n주님 안에서 회복을 위해 기도하겠습니다.\n---`
+            : "심방 관련 메일을 먼저 선택해 주세요.",
+      },
+      {
+        test: /초안|답장/,
+        reply: (m) =>
+          m
+            ? `「${m.subject}」 답장 초안 예시입니다.\n\n---\n${m.fromName}님, 메일 잘 받았습니다.\n${m.next || "관련 내용을 확인한 뒤 다시 연락드리겠습니다."}\n평안을 빕니다.\n---`
+            : "메일을 선택한 뒤 다시 요청해 주세요.",
+      },
+      {
+        test: /다음|뭐 하면|할 일/,
+        reply: (m) => (m?.next ? `다음 액션: ${m.next}` : "선택된 할 일 메일이 없거나 다음 액션이 비어 있습니다."),
+      },
+      {
+        test: /.*/,
+        reply: "데모 응답입니다. 실제 서비스에서는 선택 메일·계정 맥락으로 에이전트가 답합니다.",
+      },
+    ];
+
+    const state = {
+      account: "",
+      category: "todo",
+      query: "",
+      selectedId: "m1",
+      chatOpen: false,
+      sessionId: "s1",
+      sessions: [
+        {
+          id: "s1",
+          title: "심방 일정 문의",
+          messages: [
+            { role: "assistant", text: "안녕하세요. 데모용 에이전트입니다.\n메일을 고른 뒤 심방·답장·다음 할 일처럼 물어보세요." },
+            { role: "user", text: "이 심방 메일 어떻게 답하지?" },
+            {
+              role: "assistant",
+              text: "선택 메일 기준 초안 예시입니다.\n\n---\n이권사님, 평안을 전합니다.\n전해 주신 소식 잘 받았습니다. 수요일 오후 심방으로 맞춰 보겠습니다.\n---",
+            },
+          ],
+        },
+        {
+          id: "s2",
+          title: "세례 문답 안내",
+          messages: [
+            { role: "user", text: "세례 문의 메일에 교육 일정 알려줘" },
+            { role: "assistant", text: "데모 응답입니다. 실제 서비스에서는 선택 메일 맥락으로 교육 일정을 정리해 답합니다." },
+          ],
+        },
+        {
+          id: "s3",
+          title: "새 대화",
+          messages: [{ role: "assistant", text: "새 대화입니다. 메일을 고른 뒤 질문해 보세요." }],
+        },
+      ],
+      settings: {
+        fyiIgnore: "hide",
+        aliases: {
+          "church@gmail.com": "교회",
+          "personal@gmail.com": "개인",
+        },
+      },
+      mail: MAIL.map((m) => ({ ...m })),
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      app: $("app"),
+      accounts: $("accounts"),
+      cats: $("cats"),
+      list: $("list"),
+      listTitle: $("list-title"),
+      detail: $("detail"),
+      search: $("search"),
+      chatDrawer: $("chat-drawer"),
+      chatLog: $("chat-log"),
+      chatForm: $("chat-form"),
+      chatInput: $("chat-input"),
+      sessionList: $("session-list"),
+      viewingHint: $("viewing-hint"),
+      btnChat: $("btn-chat"),
+      btnChatClose: $("btn-chat-close"),
+      btnNewChat: $("btn-new-chat"),
+      btnSettings: $("btn-settings"),
+      settingsDlg: $("settings-dlg"),
+      settingsForm: $("settings-form"),
+      settingsCancel: $("settings-cancel"),
+      settingsSave: $("settings-save"),
+      aliasFields: $("alias-fields"),
+      toast: $("toast"),
+    };
+
+    function accountLabel(email) {
+      return state.settings.aliases[email] || ACCOUNT_META.find((a) => a.email === email)?.label || email;
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return `${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+    }
+
+    function filtered() {
+      const q = state.query.trim().toLowerCase();
+      return state.mail.filter((m) => {
+        if (state.account && m.account !== state.account) return false;
+        if (m.category !== state.category) return false;
+        if (!q) return true;
+        return [m.fromName, m.fromEmail, m.subject, m.summary, m.why, m.body]
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+      });
+    }
+
+    function counts() {
+      const out = { todo: 0, fyi: 0, ignore: 0, unclassified: 0, kept: 0 };
+      for (const m of state.mail) {
+        if (state.account && m.account !== state.account) continue;
+        out[m.category] = (out[m.category] || 0) + 1;
+      }
+      return out;
+    }
+
+    function selected() {
+      return state.mail.find((m) => m.id === state.selectedId) || null;
+    }
+
+    function toast(msg) {
+      els.toast.textContent = msg;
+      els.toast.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    function setChat(open) {
+      state.chatOpen = open;
+      els.app.classList.toggle("chat-open", open);
+      els.chatDrawer.classList.toggle("open", open);
+      els.chatDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+      els.btnChat.classList.toggle("active", open);
+    }
+
+    function setSettingsOpen(open) {
+      if (open) {
+        const mode = state.settings.fyiIgnore;
+        for (const input of els.settingsForm.querySelectorAll('input[name="fyiIgnore"]')) {
+          input.checked = input.value === mode;
+        }
+        els.aliasFields.innerHTML = ACCOUNT_META.map(
+          (a) => `<label>${a.email}
+            <input type="text" data-alias="${a.email}" value="${state.settings.aliases[a.email] || ""}" placeholder="예: 교회" maxlength="40" />
+          </label>`,
+        ).join("");
+        els.settingsDlg.showModal();
+      } else if (els.settingsDlg.open) {
+        els.settingsDlg.close();
+      }
+    }
+
+    function renderAccounts() {
+      const items = [{ email: "", label: "전체" }, ...ACCOUNT_META];
+      els.accounts.innerHTML = items
+        .map(
+          (a) =>
+            `<button type="button" data-account="${a.email}" class="${state.account === a.email ? "active" : ""}">${a.email ? accountLabel(a.email) : a.label}</button>`,
+        )
+        .join("");
+    }
+
+    function renderCats() {
+      const c = counts();
+      const keys = ["todo", "fyi", "ignore", "unclassified"];
+      if (state.settings.fyiIgnore === "keep") keys.push("kept");
+      els.cats.innerHTML = keys
+        .map(
+          (id) =>
+            `<a href="#${id}" data-cat="${id}" class="${state.category === id ? "active" : ""}"><span>${LABELS[id]}</span><span class="count">${c[id] || 0}</span></a>`,
+        )
+        .join("");
+    }
+
+    function renderList() {
+      const items = filtered();
+      els.listTitle.textContent = `${LABELS[state.category]} · ${items.length}`;
+      if (!items.length) {
+        els.list.innerHTML = `<div class="empty">이 칸에 메일이 없습니다.</div>`;
+        return;
+      }
+      els.list.innerHTML = items
+        .map((m) => {
+          const prio =
+            m.category === "todo" && m.priority
+              ? `<span class="badge ${m.priority}">${PRIORITY[m.priority]}</span>`
+              : "";
+          return `<a class="mail-item ${m.id === state.selectedId ? "active" : ""}" data-id="${m.id}" href="#mail-${m.id}">
+            <div class="mail-top"><span class="from">${m.fromName}</span><span>${formatDate(m.date)}</span></div>
+            <p class="subject">${m.subject}</p>
+            <p class="why">${m.why || m.summary || m.body.slice(0, 60)}</p>
+            <div class="badges"><span class="badge">${accountLabel(m.account)}</span>${prio}</div>
+          </a>`;
+        })
+        .join("");
+    }
+
+    function syncPrioVisibility(root) {
+      const cat = root.querySelector("#fix-cat")?.value;
+      const wrap = root.querySelector(".prio-wrap");
+      if (wrap) wrap.hidden = cat !== "todo";
+    }
+
+    function renderDetail() {
+      const m = selected();
+      if (!m) {
+        els.detail.innerHTML = `<div class="detail-empty">왼쪽에서 메일을 고르면 요약·본문·교정 액션이 열립니다.</div>`;
+        return;
+      }
+      const prio =
+        m.category === "todo" && m.priority
+          ? `<span class="badge ${m.priority}">${PRIORITY[m.priority]}</span>`
+          : "";
+      els.detail.innerHTML = `
+        <div class="detail-scroll">
+          <div class="badges" style="margin:0 0 8px">
+            ${prio}
+            <span class="badge">${LABELS[m.category]}</span>
+            <span class="badge">${accountLabel(m.account)}</span>
+          </div>
+          <h2>${m.subject}</h2>
+          <div class="meta">${m.fromName} · ${m.fromEmail} · ${formatDate(m.date)}</div>
+          <div class="actions">
+            ${m.category === "todo" ? `<button type="button" class="primary" data-action="done">끝냄</button>` : ""}
+            <button type="button" class="primary" data-action="draft">답장 초안</button>
+          </div>
+          ${m.why ? `<div class="block"><h3>사유</h3><p>${m.why}</p></div>` : ""}
+          ${m.summary ? `<div class="block"><h3>요약</h3><p>${m.summary}</p></div>` : ""}
+          ${m.next ? `<div class="block"><h3>다음에 할 일</h3><p>${m.next}</p></div>` : ""}
+          <div class="block">
+            <div class="block-head">
+              <h3>본문</h3>
+              ${m.bodyKo ? `<button type="button" class="btn-translate" data-action="translate" data-on="0">번역</button>` : ""}
+            </div>
+            <p id="body-text">${m.body}</p>
+          </div>
+          <div class="block">
+            <h3>분류 교정</h3>
+            <div class="correct">
+              <select id="fix-cat">
+                <option value="todo">할 일</option>
+                <option value="fyi">참고</option>
+                <option value="ignore">무시</option>
+              </select>
+              <span class="prio-wrap">
+                <select id="fix-prio">
+                  <option value="high">우선/높음</option>
+                  <option value="medium">우선/중간</option>
+                  <option value="low">우선/낮음</option>
+                </select>
+              </span>
+              <select id="fix-scope">
+                <option value="once">이번만</option>
+                <option value="sender">이 발신자 항상</option>
+                <option value="similar">비슷한 제목</option>
+              </select>
+              <button type="button" class="btn" data-action="correct">적용</button>
+            </div>
+          </div>
+        </div>`;
+      const catSel = els.detail.querySelector("#fix-cat");
+      const prioSel = els.detail.querySelector("#fix-prio");
+      catSel.value = m.category === "unclassified" ? "todo" : m.category;
+      prioSel.value = m.priority || "medium";
+      syncPrioVisibility(els.detail);
+      catSel.addEventListener("change", () => syncPrioVisibility(els.detail));
+    }
+
+    function currentSession() {
+      return state.sessions.find((s) => s.id === state.sessionId) || null;
+    }
+
+    function addBubble(role, text) {
+      const session = currentSession();
+      if (!session) return;
+      session.messages.push({ role, text });
+      if (role === "user" && session.title === "새 대화") {
+        session.title = text.slice(0, 24) || "새 대화";
+      }
+      renderSessions();
+      renderChatLog();
+    }
+
+    function renderSessions() {
+      if (!state.sessions.length) {
+        els.sessionList.innerHTML = `<div class="session-empty">아직 대화가 없습니다.</div>`;
+        return;
+      }
+      els.sessionList.innerHTML = state.sessions
+        .map(
+          (s) => `<div class="session-item ${s.id === state.sessionId ? "active" : ""}" data-session="${s.id}">
+            <span class="session-title">${s.title}</span>
+            <button type="button" class="session-del" data-del="${s.id}" aria-label="삭제">×</button>
+          </div>`,
+        )
+        .join("");
+    }
+
+    function renderChatLog() {
+      const session = currentSession();
+      els.chatLog.innerHTML = "";
+      if (!session) return;
+      for (const msg of session.messages) {
+        const div = document.createElement("div");
+        div.className = `bubble ${msg.role}`;
+        div.textContent = msg.text;
+        els.chatLog.appendChild(div);
+      }
+      els.chatLog.scrollTop = els.chatLog.scrollHeight;
+    }
+
+    function renderViewingHint() {
+      const m = selected();
+      els.viewingHint.textContent = m
+        ? `지금 보는 메일: ${m.subject}`
+        : "메일을 고르면 에이전트가 그 메일을 기준으로 작업합니다.";
+    }
+
+    function newSession() {
+      const id = `s${Date.now()}`;
+      state.sessions.unshift({
+        id,
+        title: "새 대화",
+        messages: [{ role: "assistant", text: "새 대화입니다. 메일을 고른 뒤 질문해 보세요." }],
+      });
+      state.sessionId = id;
+      renderSessions();
+      renderChatLog();
+    }
+
+    function renderAll() {
+      renderAccounts();
+      renderCats();
+      renderList();
+      renderDetail();
+      renderViewingHint();
+    }
+
+    els.accounts.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-account]");
+      if (!btn) return;
+      state.account = btn.dataset.account;
+      if (!filtered().some((m) => m.id === state.selectedId)) {
+        state.selectedId = filtered()[0]?.id || null;
+      }
+      renderAll();
+    });
+
+    els.cats.addEventListener("click", (e) => {
+      const a = e.target.closest("a[data-cat]");
+      if (!a) return;
+      e.preventDefault();
+      state.category = a.dataset.cat;
+      state.selectedId = filtered()[0]?.id || null;
+      renderAll();
+    });
+
+    els.list.addEventListener("click", (e) => {
+      const a = e.target.closest("a[data-id]");
+      if (!a) return;
+      e.preventDefault();
+      state.selectedId = a.dataset.id;
+      renderAll();
+    });
+
+    els.search.addEventListener("input", () => {
+      state.query = els.search.value;
+      renderList();
+    });
+
+    els.detail.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      const m = selected();
+      if (!m) return;
+      const action = btn.dataset.action;
+      if (action === "done") {
+        state.mail = state.mail.filter((row) => row.id !== m.id);
+        state.selectedId = filtered()[0]?.id || null;
+        toast("끝냄 처리했습니다");
+        renderAll();
+      } else if (action === "draft") {
+        setChat(true);
+        addBubble("user", "이 메일 답장 초안 써줘");
+        const hit = SCRIPTED.find((s) => s.test.test("답장"));
+        addBubble("assistant", hit.reply(m));
+      } else if (action === "translate") {
+        const btn = e.target.closest("[data-action=translate]");
+        const bodyEl = els.detail.querySelector("#body-text");
+        if (!btn || !bodyEl || !m.bodyKo) return;
+        const on = btn.dataset.on === "1";
+        btn.dataset.on = on ? "0" : "1";
+        btn.classList.toggle("active", !on);
+        btn.textContent = on ? "번역" : "원문";
+        bodyEl.textContent = on ? m.body : m.bodyKo;
+      } else if (action === "correct") {
+        const cat = els.detail.querySelector("#fix-cat").value;
+        const prio = els.detail.querySelector("#fix-prio").value;
+        const scope = els.detail.querySelector("#fix-scope").value;
+        m.category = cat;
+        if (cat === "todo") m.priority = prio;
+        else delete m.priority;
+        const axis = cat === "todo" ? `${LABELS[cat]} / ${PRIORITY[prio]}` : LABELS[cat];
+        m.why =
+          scope === "sender"
+            ? `규칙: 발신 ${m.fromEmail} → ${axis}`
+            : scope === "similar"
+              ? `규칙: 비슷한 제목 → ${axis}`
+              : `사용자 교정: ${axis}`;
+        state.category = cat;
+        toast("분류를 교정했습니다");
+        renderAll();
+      }
+    });
+
+    els.btnChat.addEventListener("click", () => setChat(!state.chatOpen));
+    els.btnChatClose.addEventListener("click", () => setChat(false));
+    els.btnNewChat.addEventListener("click", () => {
+      newSession();
+      setChat(true);
+    });
+
+    els.sessionList.addEventListener("click", (e) => {
+      const del = e.target.closest("[data-del]");
+      if (del) {
+        e.stopPropagation();
+        const id = del.dataset.del;
+        state.sessions = state.sessions.filter((s) => s.id !== id);
+        if (state.sessionId === id) {
+          state.sessionId = state.sessions[0]?.id || "";
+          if (!state.sessionId) newSession();
+        }
+        renderSessions();
+        renderChatLog();
+        return;
+      }
+      const row = e.target.closest("[data-session]");
+      if (!row) return;
+      state.sessionId = row.dataset.session;
+      renderSessions();
+      renderChatLog();
+    });
+
+    els.btnSettings.addEventListener("click", () => setSettingsOpen(true));
+    els.settingsCancel.addEventListener("click", () => setSettingsOpen(false));
+    els.settingsDlg.addEventListener("close", () => {});
+    els.settingsSave.addEventListener("click", () => {
+      const picked = els.settingsForm.querySelector('input[name="fyiIgnore"]:checked');
+      state.settings.fyiIgnore = picked ? picked.value : "hide";
+      for (const input of els.aliasFields.querySelectorAll("input[data-alias]")) {
+        const email = input.dataset.alias;
+        const name = input.value.trim();
+        const fallback = ACCOUNT_META.find((a) => a.email === email)?.label || email;
+        state.settings.aliases[email] = name || fallback;
+      }
+      if (state.category === "kept" && state.settings.fyiIgnore !== "keep") {
+        state.category = "todo";
+        state.selectedId = filtered()[0]?.id || null;
+      }
+      setSettingsOpen(false);
+      toast("설정을 저장했습니다");
+      renderAll();
+    });
+
+    els.chatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = els.chatInput.value.trim();
+      if (!text) return;
+      addBubble("user", text);
+      els.chatInput.value = "";
+      els.chatInput.style.height = "auto";
+      const mail = selected();
+      const hit = SCRIPTED.find((s) => s.test.test(text));
+      setTimeout(() => addBubble("assistant", hit.reply(mail)), 300);
+    });
+
+    els.chatInput.addEventListener("input", () => {
+      els.chatInput.style.height = "auto";
+      els.chatInput.style.height = `${Math.min(els.chatInput.scrollHeight, 120)}px`;
+    });
+
+    renderSessions();
+    renderChatLog();
+    renderAll();
+  </script>
+</body>
+</html>
