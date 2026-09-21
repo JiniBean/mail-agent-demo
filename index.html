@@ -612,6 +612,7 @@
       padding: 12px 8px;
       font-size: 13px;
       color: #202124;
+      overflow: auto;
     }
     .gmail-nav .compose {
       display: flex;
@@ -624,7 +625,9 @@
       font-weight: 600;
     }
     .gmail-nav button {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       width: 100%;
       text-align: left;
       border: 0;
@@ -640,17 +643,78 @@
       font-weight: 700;
       color: #001d35;
     }
+    .gmail-nav .nav-sec {
+      margin: 14px 8px 6px;
+      padding: 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #5f6368;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .gmail-nav .nav-sec .plus {
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #5f6368;
+      font-size: 16px;
+      line-height: 1;
+      cursor: default;
+    }
+    .gmail-nav .label-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background: #5f6368;
+      flex-shrink: 0;
+      opacity: 0.75;
+    }
     .gmail-read {
       overflow: auto;
       padding: 18px 28px 28px;
       background: #fff;
       min-height: 0;
     }
-    .gmail-read h1 {
+    .gmail-subject-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
       margin: 0 0 18px;
+    }
+    .gmail-subject-row h1 {
+      margin: 0;
       font-size: 22px;
       font-weight: 400;
       line-height: 1.3;
+    }
+    .gmail-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 22px;
+      padding: 0 6px 0 8px;
+      border-radius: 4px;
+      background: #e8eaed;
+      color: #3c4043;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .gmail-chip .x {
+      width: 16px;
+      height: 16px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #5f6368;
+      font-size: 14px;
+      line-height: 1;
+      cursor: default;
+      padding: 0;
     }
     .gmail-from-row {
       display: flex;
@@ -689,6 +753,35 @@
       color: #5f5207;
       font-size: 11px;
       font-weight: 600;
+    }
+    .gmail-toolbar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 14px;
+      color: #5f6368;
+      font-size: 18px;
+    }
+    .gmail-toolbar span {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+    }
+    .gmail-footer-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 28px;
+    }
+    .gmail-footer-actions button {
+      height: 36px;
+      padding: 0 18px;
+      border: 1px solid #dadce0;
+      border-radius: 18px;
+      background: #fff;
+      color: #3c4043;
+      font-size: 14px;
+      cursor: default;
     }
     @media (max-width: 720px) {
       .gmail-body { grid-template-columns: 1fr; }
@@ -771,16 +864,24 @@
     <div class="gmail-frame" role="dialog" aria-label="Gmail 데모">
       <div class="gmail-top">
         <div class="gmail-logo"><b>G</b>mail</div>
-        <input class="gmail-search" readonly value="Search mail" />
+        <input class="gmail-search" readonly value="메일 검색" />
         <button type="button" class="gmail-close" id="gmail-close">데모 닫기</button>
       </div>
       <div class="gmail-body">
         <aside class="gmail-nav">
-          <div class="compose">Compose</div>
-          <button type="button" class="active">Inbox</button>
-          <button type="button">Starred</button>
-          <button type="button">Sent</button>
-          <button type="button">Drafts</button>
+          <div class="compose">편지쓰기</div>
+          <button type="button" class="active">받은편지함</button>
+          <button type="button">별표편지함</button>
+          <button type="button">중요편지함</button>
+          <button type="button">보낸편지함</button>
+          <button type="button">임시보관함</button>
+          <div class="nav-sec"><span>라벨</span><span class="plus" title="새 라벨">+</span></div>
+          <button type="button"><span class="label-dot"></span>무시</button>
+          <button type="button"><span class="label-dot"></span>우선/높음</button>
+          <button type="button"><span class="label-dot"></span>우선/중간</button>
+          <button type="button"><span class="label-dot"></span>우선/낮음</button>
+          <button type="button"><span class="label-dot"></span>참고</button>
+          <button type="button"><span class="label-dot"></span>할 일</button>
         </aside>
         <section class="gmail-read" id="gmail-read"></section>
       </div>
@@ -1236,21 +1337,54 @@
       });
     }
 
+    function gmailLabelsFor(m) {
+      const chips = ["받은편지함"];
+      if (m.category === "todo") {
+        chips.push("할 일");
+        if (m.priority === "high") chips.push("우선/높음");
+        else if (m.priority === "low") chips.push("우선/낮음");
+        else chips.push("우선/중간");
+      } else if (m.category === "fyi") {
+        chips.push("참고");
+      } else if (m.category === "ignore") {
+        chips.push("무시");
+      } else if (m.category === "kept") {
+        chips.push("참고");
+      }
+      return chips;
+    }
+
     function openGmailDemo(m) {
       if (!m) return;
       const initial = (m.fromName || "?").trim().charAt(0).toUpperCase();
+      const chips = gmailLabelsFor(m)
+        .map(
+          (name) =>
+            `<span class="gmail-chip">${escapeHtml(name)}<button type="button" class="x" aria-label="라벨 삭제">×</button></span>`,
+        )
+        .join("");
       els.gmailRead.innerHTML = `
         <div class="gmail-demo-tag">데모 화면 · 실제 Gmail이 아닙니다</div>
-        <h1>${escapeHtml(m.subject)}</h1>
+        <div class="gmail-toolbar" aria-hidden="true">
+          <span>←</span><span>⬇</span><span>⚠</span><span>🗑</span><span>✉</span><span>⏰</span>
+        </div>
+        <div class="gmail-subject-row">
+          <h1>${escapeHtml(m.subject)}</h1>
+          ${chips}
+        </div>
         <div class="gmail-from-row">
           <div class="gmail-avatar">${escapeHtml(initial)}</div>
           <div class="gmail-from-meta">
             <div class="who">${escapeHtml(m.fromName)} <span class="addr">&lt;${escapeHtml(m.fromEmail)}&gt;</span></div>
-            <div class="to">to me · ${escapeHtml(m.account)}</div>
+            <div class="to">나에게 · ${escapeHtml(m.account)}</div>
           </div>
           <div class="gmail-date">${escapeHtml(formatGmailDate(m.date))}</div>
         </div>
-        <div class="gmail-content">${escapeHtml(m.body)}</div>`;
+        <div class="gmail-content">${escapeHtml(m.body)}</div>
+        <div class="gmail-footer-actions">
+          <button type="button">답장</button>
+          <button type="button">전달</button>
+        </div>`;
       els.gmailBack.classList.add("open");
       els.gmailBack.setAttribute("aria-hidden", "false");
     }
