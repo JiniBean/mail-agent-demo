@@ -160,7 +160,102 @@
       background: #fafcfb;
     }
 
+    .list-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .sort-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px 0;
+      flex-shrink: 0;
+    }
+    .sort-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 28px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .sort-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .sort-btn .arrow { font-size: 0.7rem; line-height: 1; }
     .list { overflow: auto; padding: 8px; flex: 1; min-height: 0; }
+
+    .detail-top {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 4px;
+    }
+    .thread-view {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 8px 0 20px;
+    }
+    .thread-bubble {
+      max-width: 82%;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .thread-bubble.in { align-self: flex-start; }
+    .thread-bubble.out { align-self: flex-end; }
+    .thread-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .thread-bubble.out .thread-meta { justify-content: flex-end; }
+    .thread-card {
+      border-radius: 14px;
+      padding: 10px 12px;
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+    .thread-bubble.in .thread-card {
+      background: #f0f4f1;
+      border-bottom-left-radius: 4px;
+    }
+    .thread-bubble.out .thread-card {
+      background: var(--ink);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .thread-card .subj {
+      font-weight: 700;
+      font-size: 0.84rem;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .thread-card .body {
+      white-space: pre-wrap;
+      font-size: 0.88rem;
+      opacity: 0.95;
+    }
+    .thread-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 12px;
+      font-size: 0.9rem;
+    }
     .mail-item {
       display: block;
       padding: 12px;
@@ -507,6 +602,85 @@
       line-height: 1.4;
     }
     .dialog-form .radio input { margin-top: 2px; }
+    .setting-block {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fafcfb;
+    }
+    .setting-block h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      letter-spacing: -0.02em;
+    }
+    .setting-block .desc {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0 0;
+    }
+    .toggle-row .toggle-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .toggle-row .toggle-copy strong {
+      font-size: 0.88rem;
+      font-weight: 650;
+    }
+    .toggle-row .toggle-copy span {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .switch {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch .slider {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: #c9d2cc;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+    .switch .slider::before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      transition: 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .switch input:checked + .slider {
+      background: var(--accent);
+    }
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+    }
     #alias-fields {
       display: flex;
       flex-direction: column;
@@ -818,7 +992,17 @@
           <div class="cats" id="cats"></div>
           <input class="search" id="search" type="search" placeholder="발신자, 제목, 요약 검색" />
         </div>
-        <div class="list" id="list"></div>
+        <div class="list-wrap">
+          <div class="sort-bar">
+            <button type="button" class="sort-btn" id="sort-priority" title="우선순위 정렬">
+              우선순위 <span class="arrow" id="sort-priority-arrow">↕</span>
+            </button>
+            <button type="button" class="sort-btn" id="sort-time" title="시간 정렬">
+              시간 <span class="arrow" id="sort-time-arrow">↕</span>
+            </button>
+          </div>
+          <div class="list" id="list"></div>
+        </div>
       </section>
       <section class="detail-pane" id="detail"></section>
     </div>
@@ -843,11 +1027,39 @@
 
   <dialog id="settings-dlg" class="mail-dialog">
     <form class="dialog-form" id="settings-form">
-      <h2>참고·무시</h2>
-      <p>메일을 삭제하지 않습니다. 읽으면 할 일 칸이 아닌 참고·무시 목록에서 빠집니다.</p>
-      <label class="radio"><input type="radio" name="fyiIgnore" value="hide" /> 이 화면 목록에서만 숨김. Gmail 받은편지함은 그대로</label>
-      <label class="radio"><input type="radio" name="fyiIgnore" value="archive" /> Gmail 받은편지함에서 빼기(아카이브). 휴지통 아님</label>
-      <label class="radio"><input type="radio" name="fyiIgnore" value="keep" /> 보관함 탭에서 다시 보기</label>
+      <h2>참고·무시 설정</h2>
+      <p>참고·무시 라벨이 붙은 메일을 읽은 뒤, 메일 에이전트와 Gmail에서 각각 어떻게 처리할지 정합니다.</p>
+
+      <div class="setting-block">
+        <h3>메일 에이전트</h3>
+        <p class="desc">이 앱의 참고·무시 목록에서 메일을 빼는 방식입니다.</p>
+        <div class="toggle-row">
+          <div class="toggle-copy">
+            <strong>읽으면 목록에서 자동으로 빼기</strong>
+            <span>끄면 끝냄을 눌렀을 때만 목록에서 빠집니다.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-agent-auto" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-block">
+        <h3>Gmail</h3>
+        <p class="desc">실제 Gmail 받은편지함에 반영할지 여부입니다. (데모에서는 저장만 합니다)</p>
+        <div class="toggle-row">
+          <div class="toggle-copy">
+            <strong>받은편지함에서 빼기</strong>
+            <span>끄면 Gmail 받은편지함은 그대로 둡니다.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-gmail-archive" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
       <h2>계정 별칭</h2>
       <p>이 화면에서만 쓰는 이름입니다. Gmail 표시 이름은 바뀌지 않습니다.</p>
       <div id="alias-fields"></div>
@@ -899,13 +1111,159 @@
       fyi: "참고",
       ignore: "무시",
       unclassified: "미분류",
-      kept: "보관함",
     };
 
     const PRIORITY = {
       high: "우선/높음",
       medium: "우선/중간",
       low: "우선/낮음",
+    };
+
+    const PRIO_RANK = { high: 3, medium: 2, low: 1 };
+
+    /** 메일 주고받은 내역 (데모). dir: in=상대, out=나 */
+    const THREADS = {
+      m1: [
+        {
+          dir: "in",
+          from: "이권사",
+          subject: "어머니 수술로 심방 부탁드립니다",
+          date: "2026-09-21T08:15:00",
+          body: "목사님 안녕하세요.\n\n어머니께서 이번 주 수요일 오전에 수술을 받게 되었습니다. 가능하시다면 수요일 오후 병원으로 심방 와주시면 큰 힘이 될 것 같습니다.\n\n병원은 Cedars-Sinai Medical Center입니다.",
+        },
+        {
+          dir: "out",
+          subject: "Re: 어머니 수술로 심방 부탁드립니다",
+          date: "2026-09-21T09:05:00",
+          body: "이권사님, 평안을 전합니다.\n소식 잘 받았습니다. 수요일 오후 2시쯤 병원으로 가겠습니다. 수술 시간이 확정되면 알려 주세요.",
+        },
+        {
+          dir: "in",
+          from: "이권사",
+          subject: "Re: 어머니 수술로 심방 부탁드립니다",
+          date: "2026-09-21T10:20:00",
+          body: "감사합니다 목사님. 수술은 오전 9시로 잡혔고, 오후에는 회복실에 계실 예정입니다. 면회는 1시 이후 가능하다고 합니다.",
+        },
+      ],
+      m2: [
+        {
+          dir: "in",
+          from: "Sarah Park",
+          subject: "Sunday 2nd service — need a worship leader",
+          date: "2026-09-21T09:40:00",
+          body: "Pastor Hong,\n\nDeacon Choi had a last-minute work trip. Could you lead the 2nd service, or should I ask someone else?",
+        },
+        {
+          dir: "out",
+          subject: "Re: Sunday 2nd service — need a worship leader",
+          date: "2026-09-21T11:10:00",
+          body: "Sarah, thank you for the heads-up. Please ask Deacon Lim first. If he cannot, I will lead it.",
+        },
+        {
+          dir: "in",
+          from: "Sarah Park",
+          subject: "Re: Sunday 2nd service — need a worship leader",
+          date: "2026-09-21T12:00:00",
+          body: "Deacon Lim confirmed. He will lead the 2nd service. Thank you!",
+        },
+      ],
+      m3: [
+        {
+          dir: "out",
+          subject: "Youth retreat dates?",
+          date: "2026-09-18T15:00:00",
+          body: "Grace, do we have final dates for the fall retreat yet?",
+        },
+        {
+          dir: "in",
+          from: "Youth Leader Grace Kim",
+          subject: "Fall retreat speaker schedule",
+          date: "2026-09-20T21:10:00",
+          body: "Hi Pastor,\n\nFall retreat is Oct 17–18 at Camp Wrightwood. Could you speak Friday evening and Saturday morning?\n\nTheme idea: Faith in the wilderness.",
+        },
+        {
+          dir: "out",
+          subject: "Re: Fall retreat speaker schedule",
+          date: "2026-09-21T07:30:00",
+          body: "Those dates work. Friday evening + Saturday morning is fine. Title draft: Walking with God in the wilderness.",
+        },
+      ],
+      m5: [
+        {
+          dir: "in",
+          from: "정성도",
+          subject: "세례 문답 일정 문의",
+          date: "2026-09-19T19:30:00",
+          body: "목사님 평안하세요.\n\n이번 Thanksgiving Sunday에 세례 받기를 원합니다. 문답·교육 일정을 알려주시면 감사하겠습니다.",
+        },
+        {
+          dir: "out",
+          subject: "Re: 세례 문답 일정 문의",
+          date: "2026-09-20T10:00:00",
+          body: "정성도님, 반갑습니다.\n세례 교육은 10월 첫째·둘째 주일 오후 1시에 있습니다. 첫 면담은 이번 주 목요일 저녁도 가능합니다.",
+        },
+      ],
+      m7: [
+        {
+          dir: "in",
+          from: "Facilities Lead Tom Lee",
+          subject: "AC repair quote — need approval",
+          date: "2026-09-21T11:20:00",
+          body: "Pastor,\n\nSanctuary AC quote is $1,850. Can we proceed Tuesday, or get a second quote?",
+        },
+        {
+          dir: "out",
+          subject: "Re: AC repair quote — need approval",
+          date: "2026-09-21T13:40:00",
+          body: "Tom, please get one more quote by Wednesday. If the gap is under $200, go with the faster schedule.",
+        },
+      ],
+      m14: [
+        {
+          dir: "in",
+          from: "오장로",
+          subject: "당회 안건 하나 더",
+          date: "2026-09-21T10:30:00",
+          body: "목사님, 이번 주 당회 때 education wing 보일러 교체 건도 안건에 넣어주시면 좋겠습니다. 견적서 두 장 받아 두었습니다.",
+        },
+        {
+          dir: "out",
+          subject: "Re: 당회 안건 하나 더",
+          date: "2026-09-21T11:00:00",
+          body: "장로님, 안건에 올렸습니다. 견적서는 당회 전에 제 책상 위에 두어 주세요.",
+        },
+      ],
+      m15: [
+        {
+          dir: "in",
+          from: "한새신자",
+          subject: "첫 출석 인사드립니다",
+          date: "2026-09-21T11:05:00",
+          body: "목사님 안녕하세요. 지난 주일 처음 예배에 참석한 한새입니다.\nnewcomer class가 있는지도 궁금합니다.",
+        },
+      ],
+      m18: [
+        {
+          dir: "in",
+          from: "Counseling Center — Dr. Han",
+          subject: "Referral follow-up for a congregant",
+          date: "2026-09-21T07:10:00",
+          body: "Dear Pastor Hong,\n\nWe need a signed consent form and two preferred time windows for an intake call.",
+        },
+        {
+          dir: "out",
+          subject: "Re: Referral follow-up for a congregant",
+          date: "2026-09-21T08:00:00",
+          body: "Dr. Han, consent form is attached. Preferred windows: Tue 2–4pm or Thu 10–12pm (PT).",
+        },
+        {
+          dir: "in",
+          from: "Counseling Center — Dr. Han",
+          subject: "Re: Referral follow-up for a congregant",
+          date: "2026-09-21T09:15:00",
+          body: "Received. We will schedule Thursday 10:30am PT and confirm with the congregant.",
+        },
+      ],
     };
 
     const MAIL = [
@@ -1192,13 +1550,13 @@
       {
         id: "m21",
         account: "church@gmail.com",
-        category: "kept",
+        category: "fyi",
         fromName: "구역장 모임",
         fromEmail: "zone@gracekc.org",
         subject: "지난주 구역 나눔 요약",
         date: "2026-09-14T09:00:00",
-        why: "보관함에서 다시 보기 설정 예시",
-        summary: "이미 읽은 참고 메일. 보관함 탭 예시.",
+        why: "읽을 필요만 있고 회신 불필요",
+        summary: "지난주 구역 나눔 요약. 회신 불필요.",
         next: "",
         body: "지난주 구역 나눔 요약을 공유합니다. 별도 회신은 필요하지 않습니다.",
       },
@@ -1249,6 +1607,9 @@
       category: "todo",
       query: "",
       selectedId: "m1",
+      threadView: false,
+      sortPriority: null,
+      sortTime: "desc",
       chatOpen: false,
       sessionId: "s1",
       sessions: [
@@ -1279,7 +1640,8 @@
         },
       ],
       settings: {
-        fyiIgnore: "hide",
+        agentAutoRemove: false,
+        gmailArchive: false,
         aliases: {
           "church@gmail.com": "교회",
           "personal@gmail.com": "개인",
@@ -1348,8 +1710,6 @@
         chips.push("참고");
       } else if (m.category === "ignore") {
         chips.push("무시");
-      } else if (m.category === "kept") {
-        chips.push("참고");
       }
       return chips;
     }
@@ -1405,7 +1765,7 @@
 
     function filtered() {
       const q = state.query.trim().toLowerCase();
-      return state.mail.filter((m) => {
+      let items = state.mail.filter((m) => {
         if (state.account && m.account !== state.account) return false;
         if (m.category !== state.category) return false;
         if (!q) return true;
@@ -1414,10 +1774,62 @@
           .toLowerCase()
           .includes(q);
       });
+
+      const prioDir = state.sortPriority;
+      const timeDir = state.sortTime;
+      items = [...items].sort((a, b) => {
+        if (prioDir) {
+          const pa = PRIO_RANK[a.priority] || 0;
+          const pb = PRIO_RANK[b.priority] || 0;
+          if (pa !== pb) return prioDir === "desc" ? pb - pa : pa - pb;
+        }
+        if (timeDir) {
+          const ta = new Date(a.date).getTime();
+          const tb = new Date(b.date).getTime();
+          if (ta !== tb) return timeDir === "desc" ? tb - ta : ta - tb;
+        }
+        return 0;
+      });
+      return items;
+    }
+
+    function getThread(m) {
+      if (!m) return [];
+      if (THREADS[m.id]) return THREADS[m.id];
+      return [
+        {
+          dir: "in",
+          from: m.fromName,
+          subject: m.subject,
+          date: m.date,
+          body: m.body,
+        },
+      ];
+    }
+
+    function cycleSort(key) {
+      const cur = state[key];
+      state[key] = cur === null ? "desc" : cur === "desc" ? "asc" : null;
+      renderSortBar();
+      renderList();
+    }
+
+    function renderSortBar() {
+      const pBtn = $("sort-priority");
+      const tBtn = $("sort-time");
+      const pArrow = $("sort-priority-arrow");
+      const tArrow = $("sort-time-arrow");
+      if (!pBtn || !tBtn) return;
+      pBtn.classList.toggle("active", !!state.sortPriority);
+      tBtn.classList.toggle("active", !!state.sortTime);
+      pArrow.textContent =
+        state.sortPriority === "desc" ? "↓" : state.sortPriority === "asc" ? "↑" : "↕";
+      tArrow.textContent =
+        state.sortTime === "desc" ? "↓" : state.sortTime === "asc" ? "↑" : "↕";
     }
 
     function counts() {
-      const out = { todo: 0, fyi: 0, ignore: 0, unclassified: 0, kept: 0 };
+      const out = { todo: 0, fyi: 0, ignore: 0, unclassified: 0 };
       for (const m of state.mail) {
         if (state.account && m.account !== state.account) continue;
         out[m.category] = (out[m.category] || 0) + 1;
@@ -1446,10 +1858,8 @@
 
     function setSettingsOpen(open) {
       if (open) {
-        const mode = state.settings.fyiIgnore;
-        for (const input of els.settingsForm.querySelectorAll('input[name="fyiIgnore"]')) {
-          input.checked = input.value === mode;
-        }
+        $("set-agent-auto").checked = !!state.settings.agentAutoRemove;
+        $("set-gmail-archive").checked = !!state.settings.gmailArchive;
         els.aliasFields.innerHTML = ACCOUNT_META.map(
           (a) => `<label>${a.email}
             <input type="text" data-alias="${a.email}" value="${state.settings.aliases[a.email] || ""}" placeholder="예: 교회" maxlength="40" />
@@ -1474,7 +1884,6 @@
     function renderCats() {
       const c = counts();
       const keys = ["todo", "fyi", "ignore", "unclassified"];
-      if (state.settings.fyiIgnore === "keep") keys.push("kept");
       els.cats.innerHTML = keys
         .map(
           (id) =>
@@ -1518,12 +1927,49 @@
         els.detail.innerHTML = `<div class="detail-empty">왼쪽에서 메일을 고르면 요약·본문·교정 액션이 열립니다.</div>`;
         return;
       }
+
+      if (state.threadView) {
+        const thread = getThread(m);
+        const bubbles = thread.length
+          ? thread
+              .map((msg) => {
+                const meta =
+                  msg.dir === "out"
+                    ? `<div class="thread-meta"><span>${escapeHtml(msg.subject)}</span><span>${formatDate(msg.date)}</span></div>`
+                    : `<div class="thread-meta"><span>${escapeHtml(msg.from || m.fromName)}</span><span>${formatDate(msg.date)}</span></div>`;
+                const subjLine =
+                  msg.dir === "in"
+                    ? `<div class="subj">${escapeHtml(msg.subject)}</div>`
+                    : "";
+                return `<div class="thread-bubble ${msg.dir}">
+                  ${meta}
+                  <div class="thread-card">
+                    ${subjLine}
+                    <div class="body">${escapeHtml(msg.body)}</div>
+                  </div>
+                </div>`;
+              })
+              .join("")
+          : `<div class="thread-empty">주고받은 메일이 없습니다.</div>`;
+        els.detail.innerHTML = `
+          <div class="detail-scroll">
+            <div class="detail-top">
+              <button type="button" class="btn" data-action="toggle-thread">메일로 돌아가기</button>
+            </div>
+            <div class="thread-view">${bubbles}</div>
+          </div>`;
+        return;
+      }
+
       const prio =
         m.category === "todo" && m.priority
           ? `<span class="badge ${m.priority}">${PRIORITY[m.priority]}</span>`
           : "";
       els.detail.innerHTML = `
         <div class="detail-scroll">
+          <div class="detail-top">
+            <button type="button" class="btn" data-action="toggle-thread">대화보기</button>
+          </div>
           <div class="badges" style="margin:0 0 8px">
             ${prio}
             <span class="badge">${LABELS[m.category]}</span>
@@ -1532,7 +1978,11 @@
           <h2>${m.subject}</h2>
           <div class="meta">${m.fromName} · ${m.fromEmail} · ${formatDate(m.date)}</div>
           <div class="actions">
-            ${m.category === "todo" ? `<button type="button" class="primary" data-action="done">끝냄</button>` : ""}
+            ${
+              m.category === "todo" || m.category === "fyi" || m.category === "ignore"
+                ? `<button type="button" class="primary" data-action="done">끝냄</button>`
+                : ""
+            }
             <button type="button" class="primary" data-action="draft">답장 초안</button>
             <button type="button" class="btn" data-action="gmail">Gmail에서 열기</button>
           </div>
@@ -1643,6 +2093,7 @@
     function renderAll() {
       renderAccounts();
       renderCats();
+      renderSortBar();
       renderList();
       renderDetail();
       renderViewingHint();
@@ -1663,6 +2114,7 @@
       if (!a) return;
       e.preventDefault();
       state.category = a.dataset.cat;
+      state.threadView = false;
       state.selectedId = filtered()[0]?.id || null;
       renderAll();
     });
@@ -1672,8 +2124,24 @@
       if (!a) return;
       e.preventDefault();
       state.selectedId = a.dataset.id;
+      state.threadView = false;
+      const m = selected();
+      if (
+        m &&
+        state.settings.agentAutoRemove &&
+        (m.category === "fyi" || m.category === "ignore")
+      ) {
+        const id = m.id;
+        const gmailNote = state.settings.gmailArchive ? " · Gmail 받은편지함에서도 뺌(데모)" : "";
+        state.mail = state.mail.filter((row) => row.id !== id);
+        state.selectedId = filtered()[0]?.id || null;
+        toast(`읽음 처리로 목록에서 뺐습니다${gmailNote}`);
+      }
       renderAll();
     });
+
+    $("sort-priority").addEventListener("click", () => cycleSort("sortPriority"));
+    $("sort-time").addEventListener("click", () => cycleSort("sortTime"));
 
     els.search.addEventListener("input", () => {
       state.query = els.search.value;
@@ -1687,9 +2155,13 @@
       if (!m) return;
       const action = btn.dataset.action;
       if (action === "done") {
+        const gmailNote =
+          (m.category === "fyi" || m.category === "ignore") && state.settings.gmailArchive
+            ? " · Gmail 받은편지함에서도 뺌(데모)"
+            : "";
         state.mail = state.mail.filter((row) => row.id !== m.id);
         state.selectedId = filtered()[0]?.id || null;
-        toast("끝냄 처리했습니다");
+        toast(`끝냄 처리했습니다${gmailNote}`);
         renderAll();
       } else if (action === "draft") {
         setChat(true);
@@ -1698,6 +2170,9 @@
         addBubble("assistant", hit.reply(m));
       } else if (action === "gmail") {
         openGmailDemo(m);
+      } else if (action === "toggle-thread") {
+        state.threadView = !state.threadView;
+        renderDetail();
       } else if (action === "translate") {
         const btn = e.target.closest("[data-action=translate]");
         const bodyEl = els.detail.querySelector("#body-text");
@@ -1766,20 +2241,18 @@
     els.settingsCancel.addEventListener("click", () => setSettingsOpen(false));
     els.settingsDlg.addEventListener("close", () => {});
     els.settingsSave.addEventListener("click", () => {
-      const picked = els.settingsForm.querySelector('input[name="fyiIgnore"]:checked');
-      state.settings.fyiIgnore = picked ? picked.value : "hide";
+      state.settings.agentAutoRemove = $("set-agent-auto").checked;
+      state.settings.gmailArchive = $("set-gmail-archive").checked;
       for (const input of els.aliasFields.querySelectorAll("input[data-alias]")) {
         const email = input.dataset.alias;
         const name = input.value.trim();
         const fallback = ACCOUNT_META.find((a) => a.email === email)?.label || email;
         state.settings.aliases[email] = name || fallback;
       }
-      if (state.category === "kept" && state.settings.fyiIgnore !== "keep") {
-        state.category = "todo";
-        state.selectedId = filtered()[0]?.id || null;
-      }
       setSettingsOpen(false);
-      toast("설정을 저장했습니다");
+      const agent = state.settings.agentAutoRemove ? "읽으면 자동 제거" : "끝냄으로만 제거";
+      const gmail = state.settings.gmailArchive ? "받은편지함에서 빼기" : "받은편지함 유지";
+      toast(`저장: 에이전트=${agent} · Gmail=${gmail}`);
       renderAll();
     });
 
