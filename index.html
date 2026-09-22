@@ -109,8 +109,8 @@
 
     .workspace {
       display: grid;
-      grid-template-columns: 340px minmax(0, 1fr);
-      gap: 12px;
+      grid-template-columns: 1fr;
+      gap: 0;
       min-height: 0;
       height: 100%;
     }
@@ -126,6 +126,9 @@
       flex-direction: column;
       overflow: hidden;
     }
+    .workspace .detail-pane { display: none; }
+    .workspace.show-detail .list-pane { display: none; }
+    .workspace.show-detail .detail-pane { display: flex; }
 
     .toolbar {
       padding: 14px 14px 10px;
@@ -199,8 +202,22 @@
 
     .detail-top {
       display: flex;
-      justify-content: flex-end;
-      margin-bottom: 4px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      min-height: 36px;
+    }
+    .detail-top .back-btn {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+      font-size: 1.15rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .detail-top .btn:not(.back-btn) {
+      margin-left: auto;
     }
     .thread-view {
       display: flex;
@@ -963,10 +980,11 @@
     }
 
     @media (max-width: 900px) {
-      .workspace { grid-template-columns: 1fr; }
-      .list-pane { max-height: 42vh; }
       .app.chat-open { padding-right: 20px; }
       .chat-drawer { width: min(100vw, var(--chat-w)); }
+      .app { padding: 12px; }
+      .top { flex-direction: column; align-items: stretch; }
+      .top-actions { justify-content: flex-end; }
     }
   </style>
 </head>
@@ -985,7 +1003,7 @@
 
     <div class="accounts" id="accounts"></div>
 
-    <div class="workspace">
+    <div class="workspace" id="workspace">
       <section class="list-pane">
         <div class="toolbar">
           <h2 id="list-title">할 일 · 0</h2>
@@ -1606,7 +1624,7 @@
       account: "",
       category: "todo",
       query: "",
-      selectedId: "m1",
+      selectedId: null,
       threadView: false,
       sortPriority: null,
       sortTime: "desc",
@@ -1653,6 +1671,7 @@
     const $ = (id) => document.getElementById(id);
     const els = {
       app: $("app"),
+      workspace: $("workspace"),
       accounts: $("accounts"),
       cats: $("cats"),
       list: $("list"),
@@ -1924,7 +1943,7 @@
     function renderDetail() {
       const m = selected();
       if (!m) {
-        els.detail.innerHTML = `<div class="detail-empty">왼쪽에서 메일을 고르면 요약·본문·교정 액션이 열립니다.</div>`;
+        els.detail.innerHTML = `<div class="detail-empty">목록에서 메일을 고르면 요약·본문·교정 액션이 열립니다.</div>`;
         return;
       }
 
@@ -1954,6 +1973,7 @@
         els.detail.innerHTML = `
           <div class="detail-scroll">
             <div class="detail-top">
+              <button type="button" class="btn back-btn" data-action="back-list" aria-label="목록으로">←</button>
               <button type="button" class="btn" data-action="toggle-thread">메일로 돌아가기</button>
             </div>
             <div class="thread-view">${bubbles}</div>
@@ -1968,6 +1988,7 @@
       els.detail.innerHTML = `
         <div class="detail-scroll">
           <div class="detail-top">
+            <button type="button" class="btn back-btn" data-action="back-list" aria-label="목록으로">←</button>
             <button type="button" class="btn" data-action="toggle-thread">대화보기</button>
           </div>
           <div class="badges" style="margin:0 0 8px">
@@ -2090,6 +2111,10 @@
       renderChatLog();
     }
 
+    function syncWorkspace() {
+      els.workspace.classList.toggle("show-detail", Boolean(state.selectedId));
+    }
+
     function renderAll() {
       renderAccounts();
       renderCats();
@@ -2097,15 +2122,15 @@
       renderList();
       renderDetail();
       renderViewingHint();
+      syncWorkspace();
     }
 
     els.accounts.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-account]");
       if (!btn) return;
       state.account = btn.dataset.account;
-      if (!filtered().some((m) => m.id === state.selectedId)) {
-        state.selectedId = filtered()[0]?.id || null;
-      }
+      state.threadView = false;
+      state.selectedId = null;
       renderAll();
     });
 
@@ -2115,7 +2140,7 @@
       e.preventDefault();
       state.category = a.dataset.cat;
       state.threadView = false;
-      state.selectedId = filtered()[0]?.id || null;
+      state.selectedId = null;
       renderAll();
     });
 
@@ -2126,6 +2151,7 @@
       state.selectedId = a.dataset.id;
       state.threadView = false;
       const m = selected();
+      renderAll();
       if (
         m &&
         state.settings.agentAutoRemove &&
@@ -2134,10 +2160,10 @@
         const id = m.id;
         const gmailNote = state.settings.gmailArchive ? " · Gmail 받은편지함에서도 뺌(데모)" : "";
         state.mail = state.mail.filter((row) => row.id !== id);
-        state.selectedId = filtered()[0]?.id || null;
+        state.selectedId = null;
         toast(`읽음 처리로 목록에서 뺐습니다${gmailNote}`);
+        renderAll();
       }
-      renderAll();
     });
 
     $("sort-priority").addEventListener("click", () => cycleSort("sortPriority"));
@@ -2160,7 +2186,8 @@
             ? " · Gmail 받은편지함에서도 뺌(데모)"
             : "";
         state.mail = state.mail.filter((row) => row.id !== m.id);
-        state.selectedId = filtered()[0]?.id || null;
+        state.selectedId = null;
+        state.threadView = false;
         toast(`끝냄 처리했습니다${gmailNote}`);
         renderAll();
       } else if (action === "draft") {
@@ -2170,6 +2197,10 @@
         addBubble("assistant", hit.reply(m));
       } else if (action === "gmail") {
         openGmailDemo(m);
+      } else if (action === "back-list") {
+        state.selectedId = null;
+        state.threadView = false;
+        renderAll();
       } else if (action === "toggle-thread") {
         state.threadView = !state.threadView;
         renderDetail();
