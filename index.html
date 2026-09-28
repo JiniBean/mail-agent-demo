@@ -109,8 +109,8 @@
 
     .workspace {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 0;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 16px;
       min-height: 0;
       height: 100%;
     }
@@ -126,9 +126,9 @@
       flex-direction: column;
       overflow: hidden;
     }
-    .workspace .detail-pane { display: none; }
-    .workspace.show-detail .list-pane { display: none; }
-    .workspace.show-detail .detail-pane { display: flex; }
+    .detail-top .back-btn {
+      display: none;
+    }
 
     .toolbar {
       padding: 14px 14px 10px;
@@ -215,9 +215,6 @@
       font-size: 1.15rem;
       line-height: 1;
       flex-shrink: 0;
-    }
-    .detail-top .btn:not(.back-btn) {
-      margin-left: auto;
     }
     .thread-view {
       display: flex;
@@ -985,6 +982,15 @@
       .app { padding: 12px; }
       .top { flex-direction: column; align-items: stretch; }
       .top-actions { justify-content: flex-end; }
+      .workspace {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      .workspace .detail-pane { display: none; }
+      .workspace.show-detail .list-pane { display: none; }
+      .workspace.show-detail .detail-pane { display: flex; }
+      .detail-top .back-btn { display: inline-flex; }
+      .detail-top .btn:not(.back-btn) { margin-left: auto; }
     }
   </style>
 </head>
@@ -1624,7 +1630,7 @@
       account: "",
       category: "todo",
       query: "",
-      selectedId: null,
+      selectedId: window.matchMedia("(max-width: 900px)").matches ? null : "m1",
       threadView: false,
       sortPriority: null,
       sortTime: "desc",
@@ -2111,6 +2117,17 @@
       renderChatLog();
     }
 
+    function isStackNav() {
+      return window.matchMedia("(max-width: 900px)").matches;
+    }
+
+    function nextSelection() {
+      const rows = filtered();
+      if (!rows.length) return null;
+      if (isStackNav()) return null;
+      return rows[0].id;
+    }
+
     function syncWorkspace() {
       els.workspace.classList.toggle("show-detail", Boolean(state.selectedId));
     }
@@ -2130,7 +2147,9 @@
       if (!btn) return;
       state.account = btn.dataset.account;
       state.threadView = false;
-      state.selectedId = null;
+      if (!filtered().some((m) => m.id === state.selectedId)) {
+        state.selectedId = nextSelection();
+      }
       renderAll();
     });
 
@@ -2140,7 +2159,7 @@
       e.preventDefault();
       state.category = a.dataset.cat;
       state.threadView = false;
-      state.selectedId = null;
+      state.selectedId = nextSelection();
       renderAll();
     });
 
@@ -2160,7 +2179,7 @@
         const id = m.id;
         const gmailNote = state.settings.gmailArchive ? " · Gmail 받은편지함에서도 뺌(데모)" : "";
         state.mail = state.mail.filter((row) => row.id !== id);
-        state.selectedId = null;
+        state.selectedId = nextSelection();
         toast(`읽음 처리로 목록에서 뺐습니다${gmailNote}`);
         renderAll();
       }
@@ -2186,7 +2205,7 @@
             ? " · Gmail 받은편지함에서도 뺌(데모)"
             : "";
         state.mail = state.mail.filter((row) => row.id !== m.id);
-        state.selectedId = null;
+        state.selectedId = nextSelection();
         state.threadView = false;
         toast(`끝냄 처리했습니다${gmailNote}`);
         renderAll();
